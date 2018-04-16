@@ -1,0 +1,276 @@
+<html>
+<head>
+        <title>Avoid IT!!!</title>
+</head>
+<body>
+        <canvas id="ctx" width="640" height="640" style="border:1px solid #000000;"></canvas>
+</body>
+<script>
+var ctx = document.getElementById("ctx").getContext("2d");
+ctx.font = '30px Arial';
+ 
+var HEIGHT = 640;
+var WIDTH = 640;
+var timeGameStarted = Date.now();   //return time in ms
+ 
+var frameCount = 0;
+ 
+var score = 0;
+ 
+var image = [];
+image.hero = new Image();
+image.hero.src = "hero.png";
+image.enemy1 = new Image();
+image.enemy1.src = "bird.png";
+image.health = new Image();
+image.health.src = "heart.png";
+image.coin = new Image();
+image.coin.src = "coin.png";
+image.land = new Image();
+image.land.src = "land.jpg";
+
+var player = {
+        x:50,
+        spdX:30,
+        y:40,
+        spdY:5,
+        hp:10,
+        width:40,
+        height:40,
+        image:image.hero,
+        pressingDown:false,
+        pressingUp:false,
+        pressingLeft:false,
+        pressingRight:false,
+};
+var enemyList = [];
+var upgradeList = [];
+ 
+testCollisionRectRect = function(rect1,rect2){
+        return rect1.x <= rect2.x+rect2.width
+                && rect2.x <= rect1.x+rect1.width
+                && rect1.y <= rect2.y + rect2.height
+                && rect2.y <= rect1.y + rect1.height;
+}
+
+testCollisionEntity = function (entity1,entity2){       //return if colliding (true/false)
+        var rect1 = {
+                x:entity1.x-entity1.width/2,
+                y:entity1.y-entity1.height/2,
+                width:entity1.width,
+                height:entity1.height,
+        }
+        var rect2 = {
+                x:entity2.x-entity2.width/2,
+                y:entity2.y-entity2.height/2,
+                width:entity2.width,
+                height:entity2.height,
+        }
+        return testCollisionRectRect(rect1,rect2);
+       
+}
+ 
+Enemy = function (id,x,y,spdX,spdY,width,height,image){
+        var enemy = {
+                x:x,
+                spdX:spdX,
+                y:y,
+                spdY:spdY,
+                name:'E',
+                id:id,
+                width:width,
+                height:height,
+                image:image,
+        };
+        enemyList[id] = enemy;
+       
+}
+ 
+randomlyGenerateEnemy = function(){
+        //Math.random() returns a number between 0 and 1
+        var x = Math.random()*WIDTH;
+        var y = Math.random()*HEIGHT;
+        var height = 30;     //between 10 and 40
+        var width = 30;
+        var id = Math.random();
+        var spdX = 5 + Math.random() * 5;
+        var spdY = 5 + Math.random() * 5;
+        Enemy(id,x,y,spdX,spdY,width,height, image.enemy1);
+       
+}
+ 
+Upgrade = function (id,x,y,spdX,spdY,width,height,category,image){
+        var up = {
+                x:x,
+                y:y,
+                spdX:spdX,
+                spdY:spdY,
+                id:id,
+                width:width,
+                height:height,
+                image:image,
+                //
+                category:category,
+        };
+        upgradeList[id] = up;
+}
+ 
+randomlyGenerateUpgrade = function(){
+        //Math.random() returns a number between 0 and 1
+        var x = Math.random()*WIDTH;
+        var y = Math.random()*HEIGHT;
+        var spdX = 0;
+        var spdY = 0;
+        var height = 20;
+        var width = 20;
+        var id = Math.random();
+       
+        if(Math.random()<0.5){
+                var category = 'score';
+                var img = image.coin;
+        } else {
+                var category = 'health';
+                var img = image.health;
+        }
+       
+        Upgrade(id,x,y,spdX,spdY,width,height,category,img);
+}
+ 
+updateEntity = function (something){
+        updateEntityPosition(something);
+        drawEntity(something);
+}
+ 
+updateEntityPosition = function(something){
+        something.x += something.spdX;
+        something.y += something.spdY;
+                       
+        if(something.x < 0 || something.x > WIDTH){
+                something.spdX = -something.spdX;
+        }
+        if(something.y < 0 || something.y > HEIGHT){
+                something.spdY = -something.spdY;
+        }
+}
+ 
+drawEntity = function(something){
+        ctx.save();
+        var x = something.x-something.width/2;
+        var y = something.y-something.height/2;
+        ctx.drawImage(something.image,x,y,something.width,something.height);
+        ctx.restore();
+}
+ 
+document.onkeydown = function(event){
+        if(event.keyCode === 68)        //d
+                player.pressingRight = true;
+        else if(event.keyCode === 83)   //s
+                player.pressingDown = true;
+        else if(event.keyCode === 65) //a
+                player.pressingLeft = true;
+        else if(event.keyCode === 87) // w
+                player.pressingUp = true;
+}
+ 
+document.onkeyup = function(event){
+        if(event.keyCode === 68)        //d
+                player.pressingRight = false;
+        else if(event.keyCode === 83)   //s
+                player.pressingDown = false;
+        else if(event.keyCode === 65) //a
+                player.pressingLeft = false;
+        else if(event.keyCode === 87) // w
+                player.pressingUp = false;
+}
+ 
+updatePlayerPosition = function(){
+        if(player.pressingRight)
+                player.x += 10;
+        if(player.pressingLeft)
+                player.x -= 10;
+        if(player.pressingDown)
+                player.y += 10;
+        if(player.pressingUp)
+                player.y -= 10;
+       
+        //ispositionvalid
+        if(player.x < player.width/2)
+                player.x = player.width/2;
+        if(player.x > WIDTH-player.width/2)
+                player.x = WIDTH - player.width/2;
+        if(player.y < player.height/2)
+                player.y = player.height/2;
+        if(player.y > HEIGHT - player.height/2)
+                player.y = HEIGHT - player.height/2;
+}
+playerPressingFalse = function(){
+        player.pressingUp = false;
+        player.pressingDown = false;
+        player.pressingLeft = false;
+        player.pressingRight = false;
+}
+ 
+update = function(){
+        ctx.clearRect(0,0,WIDTH,HEIGHT);
+        ctx.drawImage(image.land,0,0,WIDTH,HEIGHT);
+        frameCount++;
+        score++;
+       
+        if(frameCount % 100 === 0)      //every 4 sec
+                randomlyGenerateEnemy();
+ 
+        if(frameCount % 75 === 0)       //every 3 sec
+                randomlyGenerateUpgrade();
+       
+        for(var i in upgradeList){
+                updateEntity(upgradeList[i]);
+                var isColliding = testCollisionEntity(player,upgradeList[i]);
+                if(isColliding){
+                        if(upgradeList[i].category === 'score')
+                                score += 1000;
+                        if(upgradeList[i].category === 'health')
+                                player.hp += 1;
+                        delete upgradeList[i];
+                }
+        }
+       
+        for(var i in enemyList){
+                updateEntity(enemyList[i]);
+                var isColliding = testCollisionEntity(player,enemyList[i]);
+                if(isColliding){
+                        player.hp = player.hp - 1;
+                        enemyList[i].spdX = -enemyList[i].spdX;
+                        enemyList[i].spdY = -enemyList[i].spdY;
+                        playerPressingFalse();
+                }
+        }
+        if(player.hp <= 0){
+                var timeSurvived = Date.now() - timeGameStarted;           
+                if(confirm("You lost! You survived for " + timeSurvived + " ms and scored " + score + ". Do you want to retry?"))
+                        startNewGame();
+                else       
+                        window.close();
+        }
+        updatePlayerPosition();
+        drawEntity(player);
+        ctx.fillText(player.hp + " Hp",0,30);
+        ctx.fillText('Score: ' + score,400,30);
+}
+ 
+startNewGame = function(){
+        player.hp = 10;
+        timeGameStarted = Date.now();
+        frameCount = 0;
+        score = 0;
+        enemyList = {};
+        upgradeList = {};
+        randomlyGenerateEnemy();
+        randomlyGenerateEnemy();
+        randomlyGenerateEnemy();
+       
+}
+startNewGame();
+ 
+setInterval(update,40);
+</script>
+</html>
